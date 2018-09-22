@@ -14,6 +14,8 @@ Task 5: fetch auction results from realestate.com.au, but actually these data ar
 
 '''
 
+__author__ = 'zht'
+
 import aiohttp
 import asyncio
 from bs4 import BeautifulSoup
@@ -29,6 +31,7 @@ from contextlib import suppress
 import math
 import datetime
 import base64
+import gzip
 
 '''
 url_root = {'1': u'https://www.realestate.com.au/neighbourhoods/',
@@ -233,6 +236,7 @@ class Medi_price_sub(object):
         self.position = d['position']
         return self
 
+# property sold history
 class Propt_sold_history(object):
     __slot__ = ('id', 'suburb_id', 'full_address', 'property_type', 'price', 'bedrooms', 'bathrooms', 'carspaces',
                 'sold_date', 'agent', 'url', 'update_date')
@@ -344,6 +348,31 @@ class Auction_result(object):
 
 
 class Switch(object):
+    '''
+    This class provides the functionality we want. You only need to look at
+    this if you want to know how this works. It only needs to be defined
+    once, no need to muck around with its internals.
+    The following example is pretty much the exact use-case of a dictionary,
+    but is included for its simplicity. Note that you can include statements
+    in each suite.
+    v = 'ten'
+    for case in switch(v):
+        if case('one'):
+            print 1
+            break
+        if case('two'):
+            print 2
+            break
+        if case('ten'):
+            print 10
+            break
+        if case('eleven'):
+            print 11
+            break
+        if case(): # default, could also just omit condition or 'if True'
+            print "something else!"
+            # No need to break here, it'll stop anyway
+    '''
     def __init__(self, value):
         self.value = value
         self.fall = False
@@ -605,14 +634,15 @@ class Spider(object):
             if case(4):
                 url_root = u'https://www.realestate.com.au/sold/list-%s?includeSurrounding=false'
                 headers_base = {'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8',
-                                'accept-encoding': 'gzip, deflate, br',
+                                # 'accept-encoding': 'gzip,deflate,br',
+                                'accept-encoding': 'gzip,deflate',          # sounds like 'br' is not supported
                                 'upgrade-insecure-requests': '1',
                                 'accept-Language': 'zh-CN,zh;q=0.9',
                                 'referer': 'https://www.realestate.com.au/sold'}
                 # generate url
                 url = url_root % kw['list_id']
                 # generate header
-                headers_base.update(self.headers_useragent_pool[random.randint(0, len(self.headers_useragent_pool) - 1)])
+                # headers_base.update(self.headers_useragent_pool[random.randint(0, len(self.headers_useragent_pool) - 1)])
                 hds = headers_base  # just assign the pointer
                 break
             if case(5):
@@ -893,7 +923,7 @@ class Spider(object):
                     'sold_date': property_sold_on,
                     'url': property_url}
 
-        source_code = await response.read()
+        source_code = await response.read().decode('utf-8')
         soup = BeautifulSoup(source_code, 'lxml')
         propt_sold_history = Propt_sold_history()
 
@@ -1129,8 +1159,8 @@ class Spider(object):
 
             property_type = property_info.p.find_all('span')[0].text
             property_sold_on = property_info.p.find_all('span')[1].text
-            property_features = all_info.find('ul', {
-                'class': 'general-features rui-clearfix residential-card__general-features'})
+            # property_features = all_info.find('ul', {'class': 'general-features rui-clearfix residential-card__general-features'})
+            property_features = all_info.find('ul', {'class': 'general-features rui-clearfix property-info__general-features'})
             if property_features == None:
                 property_beds = None
                 property_baths = None
@@ -1166,7 +1196,12 @@ class Spider(object):
                     #'url': property_url}
 
         source_code = await response.read()
+        # source_code = source_code.decode('gbk')
+        # source_code = gzip.decompress(source_code)
+        # print(response.headers.get('vary'))
+        # print(source_code)
         soup = BeautifulSoup(source_code, 'lxml')
+        # print(soup)
         propt_sold_history = Propt_sold_history()
 
         full_view_properties = soup.find_all('article', {'class': 'results-card residential-card '})
