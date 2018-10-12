@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>The Most Popular Suburbs</title>
+</head>
+<body>
+    <h1>The Most Popular Suburbs in Australia</h1>
+    <form action="/popsuburbs/" method="post">
+        {% csrf_token %}
+        <p>Please choose analysis period (days):
+            {{form.Period}}
+            <button type="'submit">Submit</button>
+        </p>
+    </form>
+    {% if period %}
+        <h3>Sold History in the Latest {{ period }} days</h3>
+        <table border="1">
+        <tr>
+            <th>Rank</th>
+            <th>State</th>
+            <th>Postcode</th>
+            <th>Suburb</th>
+            <th>Total</th>
+        </tr>
+        {% for r in rlt %}
+            <tr>
+                <td>{{ r.rank }}</td>
+                <td>{{ r.state }}</td>
+                <td>{{ r.postcode }}</td>
+                <td>{{ r.suburb }}</td>
+                <td>{{ r.total_num }}</td>
+            </tr>
+        {% endfor %}
+        </table>
+    {% endif %}
+
+</body>
+</html>
